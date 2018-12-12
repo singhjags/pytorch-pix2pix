@@ -44,7 +44,7 @@ transform = transforms.Compose([
 train_loader = util.data_load(opt.dataset, opt.train_subfolder, transform, opt.batch_size, shuffle=True)
 test_loader = util.data_load(opt.dataset, opt.test_subfolder, transform, opt.test_batch_size, shuffle=True)
 test = test_loader.__iter__().__next__()[0]
-img_size = test.size()[2]
+img_size = 1147#test.size()[2]
 if opt.inverse_order:
     fixed_y_ = test[:, :, :, 0:img_size]
     fixed_x_ = test[:, :, :, img_size:]
