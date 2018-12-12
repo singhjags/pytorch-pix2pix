@@ -6,9 +6,9 @@ from torchvision import transforms
 from torch.autograd import Variable
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', required=False, default='facades',  help='')
+parser.add_argument('--dataset', required=False, default='../sydney_house_data_aligned',  help='')
 parser.add_argument('--train_subfolder', required=False, default='train',  help='')
-parser.add_argument('--test_subfolder', required=False, default='val',  help='')
+parser.add_argument('--test_subfolder', required=False, default='train',  help='')
 parser.add_argument('--batch_size', type=int, default=1, help='train batch size')
 parser.add_argument('--test_batch_size', type=int, default=5, help='test batch size')
 parser.add_argument('--ngf', type=int, default=64)
@@ -24,7 +24,7 @@ parser.add_argument('--L1_lambda', type=float, default=100, help='lambda for L1 
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for Adam optimizer')
 parser.add_argument('--beta2', type=float, default=0.999, help='beta2 for Adam optimizer')
 parser.add_argument('--save_root', required=False, default='results', help='results save path')
-parser.add_argument('--inverse_order', type=bool, default=True, help='0: [input, target], 1 - [target, input]')
+parser.add_argument('--inverse_order', type=bool, default=False, help='0: [input, target], 1 - [target, input]')
 opt = parser.parse_args()
 print(opt)
 
@@ -41,8 +41,8 @@ transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 ])
-train_loader = util.data_load('data/' + opt.dataset, opt.train_subfolder, transform, opt.batch_size, shuffle=True)
-test_loader = util.data_load('data/' + opt.dataset, opt.test_subfolder, transform, opt.test_batch_size, shuffle=True)
+train_loader = util.data_load(opt.dataset, opt.train_subfolder, transform, opt.batch_size, shuffle=True)
+test_loader = util.data_load(opt.dataset, opt.test_subfolder, transform, opt.test_batch_size, shuffle=True)
 test = test_loader.__iter__().__next__()[0]
 img_size = test.size()[2]
 if opt.inverse_order:
@@ -125,9 +125,9 @@ for epoch in range(opt.train_epoch):
         D_train_loss.backward()
         D_optimizer.step()
 
-        train_hist['D_losses'].append(D_train_loss.data[0])
+        train_hist['D_losses'].append(D_train_loss.item())
 
-        D_losses.append(D_train_loss.data[0])
+        D_losses.append(D_train_loss.item())
 
         # train generator G
         G.zero_grad()
@@ -139,9 +139,9 @@ for epoch in range(opt.train_epoch):
         G_train_loss.backward()
         G_optimizer.step()
 
-        train_hist['G_losses'].append(G_train_loss.data[0])
+        train_hist['G_losses'].append(G_train_loss.item())
 
-        G_losses.append(G_train_loss.data[0])
+        G_losses.append(G_train_loss.item())
 
         num_iter += 1
 
@@ -151,7 +151,8 @@ for epoch in range(opt.train_epoch):
     print('[%d/%d] - ptime: %.2f, loss_d: %.3f, loss_g: %.3f' % ((epoch + 1), opt.train_epoch, per_epoch_ptime, torch.mean(torch.FloatTensor(D_losses)),
                                                               torch.mean(torch.FloatTensor(G_losses))))
     fixed_p = root + 'Fixed_results/' + model + str(epoch + 1) + '.png'
-    util.show_result(G, Variable(fixed_x_.cuda(), volatile=True), fixed_y_, (epoch+1), save=True, path=fixed_p)
+    with torch.no_grad():
+        util.show_result(G, Variable(fixed_x_.cuda()), fixed_y_, (epoch+1), save=True, path=fixed_p)
     train_hist['per_epoch_ptimes'].append(per_epoch_ptime)
 
 end_time = time.time()
